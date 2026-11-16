@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TubeScout — Free YouTube Topic & SEO Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0b12;--card:#17141f;--card2:#201b2b;--line:#2d2639;--txt:#ece8f3;--mut:#9a92a8;--acc:#B05BE8;--good:#3ecf8e;--mid:#f5b942;--bad:#ff5c6c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Montserrat,system-ui,sans-serif;font-size:15px;line-height:1.45}
+header{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.3px}
+header h1 span{color:var(--acc)}
+#quota{min-width:140px;text-align:right}
+#quota small{color:var(--mut);font-size:11px}
+.qbar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:3px}
+.qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),#e08bff);box-shadow:0 0 10px var(--acc)}
+.qbar i.warn{background:var(--bad)}
+nav{position:sticky;top:0;z-index:5;background:rgba(13,11,18,.95);backdrop-filter:blur(8px);display:flex;overflow-x:auto;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line)}
+nav button{flex:0 0 auto;background:var(--card);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:7px 13px;font:600 13px Montserrat,sans-serif}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{padding:12px;max-width:820px;margin:0 auto}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:17px;margin:0 0 8px}h3{font-size:15px;margin:14px 0 6px}
+p.hint,.hint{color:var(--mut);font-size:13px;margin:4px 0 10px}
+input,select,textarea{width:100%;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font:14px Montserrat,sans-serif}
+textarea{min-height:120px;resize:vertical}
+label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px;font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 auto}
+button.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:700 14px Montserrat,sans-serif;cursor:pointer}
+button.btn.sec{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+button.btn.sm{padding:6px 10px;font-size:12px}
+button.btn:disabled{opacity:.5}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.item .t{flex:1;font-size:14px}
+.item .m{color:var(--mut);font-size:12px}
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.score div{background:var(--card2);border-radius:12px;padding:10px;text-align:center}
+.score b{display:block;font-size:26px}
+.score span{font-size:11px;color:var(--mut)}
+.g{color:var(--good)}.y{color:var(--mid)}.r{color:var(--bad)}
+.pill{display:inline-block;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700;background:var(--card2)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:13px}
+.stats div{background:var(--card2);border-radius:8px;padding:7px 9px}
+.stats b{float:right}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-weight:600;font-size:11px}
+tr.click{cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:5px 10px;font-size:13px}
+.chip button{background:none;border:0;color:var(--mut);margin-left:4px;font-size:14px;cursor:pointer}
+.counter{font-size:12px;color:var(--mut);margin-top:4px}
+.badge{font-size:10px;background:var(--acc);color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px;vertical-align:middle}
+.prog{font-size:13px;color:var(--acc);margin:8px 0;min-height:18px}
+a{color:#d49bff}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2b2338;border:1px solid var(--acc);padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;max-width:90%;z-index:20}
+#toast.show{opacity:1}
+.err{color:var(--bad);font-size:13px}
+ol{padding-left:20px}ol li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Tube<span>Scout</span></h1>
+  <div id="quota"></div>
+</header>
+<nav>
+  <button data-tab="trends" class="on">1 · Trends</button>
+  <button data-tab="supply">2 · Supply</button>
+  <button data-tab="titles">3 · Titles</button>
+  <button data-tab="desc">4 · Description</button>
+  <button data-tab="tags">5 · Tags</button>
+  <button data-tab="settings">⚙ Settings</button>
+</nav>
+<main>
+
+<!-- 1 TRENDS -->
+<section id="trends" class="on">
+  <div class="card">
+    <h2>Niche ideas from YouTube search</h2>
+    <p class="hint">Real phrases people type into YouTube for your niches (Settings → Niches). Free, no quota used.</p>
+    <div class="row"><button class="btn" id="btnIdeas">Find ideas</button><button class="btn sec" id="btnRank" disabled>Rank top 10 by opportunity (~1,030 units)</button></div>
+    <div class="prog" id="ideasProg"></div>
+    <div id="rankOut"></div>
+    <div class="list" id="ideasOut"></div>
+  </div>
+  <div class="card">
+    <h2>Most popular on YouTube now</h2>
+    <p class="hint">YouTube's own popular-videos chart for your country (1 unit).</p>
+    <div class="row">
+      <select id="ytCat">
+        <option value="0">All categories</option><option value="27">Education</option><option value="28">Science &amp; Technology</option>
+        <option value="15">Pets &amp; Animals</option><option value="24">Entertainment</option><option value="22">People &amp; Blogs</option>
+        <option value="25">News &amp; Politics</option><option value="20">Gaming</option><option value="17">Sports</option><option value="10">Music</option>
+      </select>
+      <button class="btn" id="btnPopular">Load</button>
+    </div>
+    <div class="list" id="popOut" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2>What the world is reading (Wikipedia)</h2>
+    <p class="hint">Most-viewed Wikipedia articles yesterday. Great for curiosity topics. Free. Purple tag = matches your niches.</p>
+    <button class="btn" id="btnWiki">Load</button>
+    <div class="list" id="wikiOut" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2>Reddit this week</h2>
+    <p class="hint">Top posts of the week. Free, but Reddit sometimes blocks browser requests.</p>
+    <div class="row"><input id="subs" value="todayilearned, space, natureismetal, Damnthatsinteresting, history"><button class="btn" id="btnReddit">Load</button></div>
+    <div class="list" id="redditOut" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2>Google Trends</h2>
+    <p class="hint">Browsers can't read Google Trends directly, so open it here and copy a topic into Supply.</p>
+    <a id="gtLink" href="https://trends.google.com/trending?geo=IN" target="_blank" rel="noopener">Open Google Trends · Trending now ↗</a>
+  </div>
+</section>
+
+<!-- 2 SUPPLY -->
+<section id="supply">
+  <div class="card">
+    <h2>Supply check</h2>
+    <p class="hint">How many videos already cover this topic, and how hard it is to rank. Uses 102 units (cached 24 h).</p>
+    <div class="row"><input id="topicIn" placeholder="e.g. what if the moon disappeared"><button class="btn" id="btnCheck">Check</button></div>
+    <div class="prog" id="supplyProg"></div>
+  </div>
+  <div id="supplyOut"></div>
+</section>
+
+<!-- 3 TITLES -->
+<section id="titles">
+  <div class="card">
+    <h2>SEO titles</h2>
+    <p class="hint" id="titleTopic">Check a topic in Supply first, or type one here.</p>
+    <div class="row"><input id="titleTopicIn" placeholder="topic"></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="btnTitles">20 titles (free templates)</button><button class="btn sec" id="btnTitlesAI">20 titles with AI (Gemini)</button></div>
+    <div class="prog" id="titleProg"></div>
+    <div id="kwOut"></div>
+  </div>
+  <div class="card"><div class="list" id="titlesOut"><p class="hint">Titles show here. Tap <b>Approve</b> on one to unlock the description and tags.</p></div></div>
+</section>
+
+<!-- 4 DESCRIPTION -->
+<section id="desc">
+  <div class="card">
+    <h2>SEO description</h2>
+    <p class="hint" id="descFor">Approve a title first (step 3).</p>
+    <label>Optional: paste your script or notes (AI uses it for a better description and chapters)</label>
+    <textarea id="scriptIn" style="min-height:80px"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn" id="btnDesc">Write (free template)</button><button class="btn sec" id="btnDescAI">Write with AI (Gemini)</button></div>
+    <div class="prog" id="descProg"></div>
+    <label>Description (edit freely)</label>
+    <textarea id="descOut" style="min-height:300px"></textarea>
+    <div class="counter" id="descCount"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sec" data-copy="descOut">Copy description</button></div>
+  </div>
+</section>
+
+<!-- 5 TAGS -->
+<section id="tags">
+  <div class="card">
+    <h2>Tags</h2>
+    <p class="hint">Mix of your main keyword, real YouTube searches and tags the top videos use. Counted the way YouTube counts (commas + quotes count). Limit 500.</p>
+    <button class="btn" id="btnTags">Generate tags &amp; hashtags</button>
+    <div class="chips" id="tagChips"></div>
+    <div class="row"><input id="tagAdd" placeholder="add a tag and press Enter"></div>
+    <div class="counter" id="tagCount"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sec" id="btnCopyTags">Copy tags</button></div>
+  </div>
+  <div class="card">
+    <h2>Hashtags</h2>
+    <p class="hint">3–5 is best. The first 3 show above your title. More than 15 and YouTube ignores all of them.</p>
+    <input id="hashOut">
+    <div class="counter" id="hashCount"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sec" data-copy="hashOut">Copy hashtags</button></div>
+  </div>
+  <div class="card">
+    <h2>Everything together</h2>
+    <div class="row"><button class="btn" id="btnCopyAll">Copy title + description + tags</button><button class="btn sec" id="btnSave">Save to history</button></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section id="settings">
+  <div class="card">
+    <h2>Settings</h2>
+    <label>YouTube Data API key (free, required for Supply)</label>
+    <input id="setYt" type="password" placeholder="AIza...">
+    <label>Gemini API key (optional, for AI titles and descriptions)</label>
+    <input id="setGem" type="password" placeholder="optional">
+    <label>Gemini model</label>
+    <input id="setModel">
+    <div class="row">
+      <div><label>Country</label><select id="setRegion">
+        <option>IN</option><option>US</option><option>GB</option><option>CA</option><option>AU</option><option>PK</option><option>BD</option><option>PH</option><option>NG</option><option>AE</option><option>DE</option>
+      </select></div>
+      <div><label>Language</label><select id="setLang"><option value="en">English</option><option value="hi">Hindi</option></select></div>
+    </div>
+    <label>Niches (comma separated)</label>
+    <input id="setNiches">
+    <label>Channel name (adds a channel tag and brand hashtag)</label>
+    <input id="setChannel" placeholder="e.g. WhyVerse">
+    <label>Credits text (added to every description, e.g. music / model credits)</label>
+    <textarea id="setCredits" style="min-height:70px"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="btnSaveSet">Save settings</button></div>
+    <p class="hint">Keys are saved only in this browser on this phone.</p>
+  </div>
+  <div class="card">
+    <h2>Get your free YouTube API key (5 min)</h2>
+    <ol class="hint">
+      <li>Open <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> and create a project.</li>
+      <li>Search for <b>YouTube Data API v3</b> and tap <b>Enable</b>.</li>
+      <li>Go to <b>APIs &amp; Services → Credentials → Create credentials → API key</b>.</li>
+      <li>Edit the key and set <b>API restrictions = YouTube Data API v3</b>. Under <b>Website restrictions</b>, add your site address (e.g. <code>yourname.github.io/*</code>).</li>
+      <li>Paste the key above. You get 10,000 units a day, which is about 95 topic checks. It resets at 1:30 PM IST.</li>
+    </ol>
+    <p class="hint">Gemini key (optional): <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
+  </div>
+  <div class="card">
+    <h2>History</h2>
+    <div class="list" id="histOut"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sec" id="btnExportJson">Download JSON</button><button class="btn sec" id="btnExportCsv">Download CSV</button></div>
+  </div>
+  <div class="card">
+    <h2>How the scores work</h2>
+    <p class="hint"><b>Demand</b> = trend strength + how often YouTube suggests the phrase + average views of the top 20 videos + view speed of videos from the last 30 days.<br>
+    <b>Competition</b> = total results + share uploaded in the last 90 days + median subscribers of the ranking channels + how many titles use the exact keyword − small channels (&lt;10k subs) in the top 20.<br>
+    <b>Opportunity</b> = √(Demand × (100 − Competition)) + bonuses for outliers (views ≥ 3× subs) and old results. 60+ is a strong topic.<br>
+    All numbers are estimates from free data, not exact search volumes.</p>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmt=n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n));
+const store={get(k,d){try{const v=localStorage.getItem('ts_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('ts_'+k,JSON.stringify(v))}catch(e){}}};
+function cacheGet(k,ttl){const v=store.get('c_'+k,null);return v&&Date.now()-v.t<ttl?v.v:null}
+function cacheSet(k,v){store.set('c_'+k,{t:Date.now(),v})}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+async function copy(text){try{await navigator.clipboard.writeText(text);toast('Copied ✓')}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied ✓')}catch(_){toast('Copy failed: select and copy by hand')}ta.remove()}}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+const lin=(x,a,b)=>Math.max(0,Math.min(100,(x-a)/(b-a)*100));
+const clamp=x=>Math.max(0,Math.min(100,x));
+function median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
+const STOP=new Set('the and for with what why how happens happen does did are was you your this that from into when would will could can its who where which about than then there their they them our out all any not but has have had were been being also just very really'.split(' '));
+const SMALL=new Set('a an and as at but by for in of on or the to vs via'.split(' '));
+function titleCase(s){return s.trim().split(/\s+/).map((w,i)=>(i>0&&SMALL.has(w.toLowerCase()))?w.toLowerCase():w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}
+function keyWords(s){return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w.length>2&&!STOP.has(w))}
+const cls=v=>v>=60?'g':v>=40?'y':'r';
+
+/* ---------- state ---------- */
+const DEF={ytKey:'',geminiKey:'',model:'gemini-flash-latest',region:'IN',lang:'en',niches:'space, ocean, animals, history, science, what if',channel:'',credits:''};
+const S={settings:{...DEF,...store.get('settings',{})},ideas:[],ranked:[],analysis:null,kw:null,title:null,tags:[]};
+
+/* ---------- quota ---------- */
+const ptDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());
+function quota(){let q=store.get('quota',{d:'',u:0});if(q.d!==ptDate())q={d:ptDate(),u:0};return q}
+function spend(n){const q=quota();if(q.u+n>9500)throw new Error('Daily YouTube quota is 95% used. It resets at 1:30 PM IST.');q.u+=n;store.set('quota',q);renderQuota()}
+function renderQuota(){const q=quota(),pct=q.u/100;$('#quota').innerHTML=`<div class="qbar"><i class="${pct>=80?'warn':''}" style="width:${Math.min(pct,100)}%"></i></div><small>${(10000-q.u).toLocaleString()} API units left today</small>`}
+
+/* ---------- data sources ---------- */
+async function yt(path,params,cost){
+  const key=S.settings.ytKey;if(!key)throw new Error('Add your free YouTube API key in ⚙ Settings first.');
+  spend(cost);
+  const u=new URL('https://www.googleapis.com/youtube/v3/'+path);
+  Object.entries({...params,key}).forEach(([k,v])=>u.searchParams.set(k,v));
+  const r=await fetch(u);const j=await r.json();
+  if(j.error)throw new Error('YouTube: '+String(j.error.message||'error').replace(/<[^>]+>/g,''));
+  return j;
+}
+let jpN=0;
+function jsonp(url){return new Promise((res,rej)=>{const cb='__jp'+Date.now()+(jpN++);const s=document.createElement('script');const t=setTimeout(()=>{done();rej(new Error('timeout'))},8000);function done(){clearTimeout(t);try{delete window[cb]}catch(e){window[cb]=undefined}s.remove()}window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error('blocked'))};s.src=url+'&callback='+cb;document.head.appendChild(s)})}
+async function suggest(q){
+  q=q.toLowerCase().trim();const ck='ac_'+S.settings.region+'_'+q;const c=cacheGet(ck,7*864e5);if(c)return c;
+  const d=await jsonp(`https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&hl=${S.settings.lang}&gl=${S.settings.region}&q=${encodeURIComponent(q)}`);
+  const list=(d&&d[1]||[]).map(x=>Array.isArray(x)?x[0]:x).filter(x=>typeof x==='string');
+  cacheSet(ck,list);return list;
+}
+async function gemini(prompt){
+  const k=S.settings.geminiKey;if(!k)throw new Error('Add a free Gemini key in ⚙ Settings to use AI writing (or use the free template button).');
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.settings.model)}:generateContent?key=${encodeURIComponent(k)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9}})});
+  const j=await r.json();if(j.error)throw new Error('Gemini: '+j.error.message);
+  return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+}
+
+/* ---------- tabs ---------- */
+function tab(name){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===name));window.scrollTo(0,0)}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copy($('#'+b.dataset.copy).value));
+
+/* ---------- 1. trends ---------- */
+function useBtn(text,trend){return `<button class="btn sm" data-use="${esc(text)}" data-trend="${trend||0}">Check</button>`}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-use]');if(!b)return;$('#topicIn').value=b.dataset.use;tab('supply');runCheck(b.dataset.use,+b.dataset.trend)});
+function nicheMatch(t){const w=keyWords(S.settings.niches);const l=t.toLowerCase();return w.some(x=>l.includes(x))}
+
+$('#btnIdeas').onclick=async()=>{
+  const btn=$('#btnIdeas');btn.disabled=true;const prog=$('#ideasProg');
+  const seeds=S.settings.niches.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,8);
+  const mods=['what if ','why ','what happens if ','how ',''];
+  const freq=new Map();let n=0,total=seeds.length*mods.length,fails=0;
+  for(const seed of seeds)for(const mod of mods){
+    n++;prog.textContent=`Searching YouTube suggestions… ${n}/${total}`;
+    const q=(mod&&seed.startsWith(mod.trim()))?seed:mod+seed;
+    try{const list=await suggest(q);list.forEach((s,i)=>{if(s.split(' ').length<3)return;const e=freq.get(s)||{t:s,score:0,hits:0};e.score+=10-i;e.hits++;freq.set(s,e)})}catch(e){fails++}
+    await sleep(150);
+  }
+  S.ideas=[...freq.values()].sort((a,b)=>b.score-a.score).slice(0,60);
+  prog.textContent=S.ideas.length?`${S.ideas.length} ideas found. Tap Check on one, or rank the top 10.`:(fails?'YouTube suggestions are blocked on this network. Try another connection.':'No ideas found. Try different niches in Settings.');
+  $('#ideasOut').innerHTML=S.ideas.map(i=>`<div class="item"><div class="t">${esc(i.t)}</div>${useBtn(i.t,0)}</div>`).join('');
+  $('#btnRank').disabled=!S.ideas.length;btn.disabled=false;
+};
+
+$('#btnRank').onclick=async()=>{
+  const btn=$('#btnRank');btn.disabled=true;const prog=$('#ideasProg');
+  const todo=S.ideas.slice(0,10);S.ranked=[];
+  for(let i=0;i<todo.length;i++){
+    prog.textContent=`Checking supply ${i+1}/${todo.length}: ${todo[i].t}`;
+    try{const d=await analyze(todo[i].t,0);S.ranked.push({d,s:score(d)});renderRank()}catch(e){prog.textContent=e.message;break}
+  }
+  if(S.ranked.length)prog.textContent='Done. Tap a row to see details.';btn.disabled=false;
+};
+function renderRank(){
+  const rows=[...S.ranked].sort((a,b)=>b.s.opportunity-a.s.opportunity);
+  $('#rankOut').innerHTML=`<table><tr><th>Topic</th><th>Opp.</th><th>Demand</th><th>Comp.</th></tr>${rows.map((r,i)=>`<tr class="click" data-rank="${S.ranked.indexOf(r)}"><td>${esc(r.d.topic)}<br><span class="hint">${r.s.verdict}</span></td><td class="${cls(r.s.opportunity)}"><b>${Math.round(r.s.opportunity)}</b></td><td>${Math.round(r.s.demand)}</td><td>${Math.round(r.s.competition)}</td></tr>`).join('')}</table>`;
+  document.querySelectorAll('[data-rank]').forEach(tr=>tr.onclick=()=>{const r=S.ranked[+tr.dataset.rank];S.analysis=r.d;$('#topicIn').value=r.d.topic;renderSupply(r.d);tab('supply')});
+}
+
+$('#btnPopular').onclick=async()=>{
+  const out=$('#popOut');out.innerHTML='<p class="hint">Loading…</p>';
+  try{
+    const p={part:'snippet,statistics',chart:'mostPopular',regionCode:S.settings.region,maxResults:40};const cat=$('#ytCat').value;if(cat!=='0')p.videoCategoryId=cat;
+    const j=await yt('videos',p,1);
+    out.innerHTML=(j.items||[]).map(v=>`<div class="item"><div class="t">${esc(v.snippet.title)}<div class="m">${esc(v.snippet.channelTitle)} · ${fmt(+v.statistics.viewCount||0)} views</div></div>${useBtn(v.snippet.title,80)}</div>`).join('')||'<p class="hint">Nothing returned for this category.</p>';
+  }catch(e){out.innerHTML=`<p class="err">${esc(e.message)}</p>`}
+};
+
+$('#btnWiki').onclick=async()=>{
+  const out=$('#wikiOut');out.innerHTML='<p class="hint">Loading…</p>';
+  for(let back=1;back<=3;back++){
+    const d=new Date(Date.now()-back*864e5);const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),dd=String(d.getUTCDate()).padStart(2,'0');
+    try{
+      const r=await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia.org/all-access/${y}/${m}/${dd}`);if(!r.ok)continue;
+      const j=await r.json();
+      const arts=j.items[0].articles.filter(a=>a.article!=='-'&&!/^(Main_Page|Special:|Wikipedia:|Portal:|File:|Help:|Category:|Template:|Talk:|User:|Deaths_in|List_of)/.test(a.article)).slice(0,40);
+      out.innerHTML=arts.map((a,i)=>{const t=a.article.replace(/_/g,' ');return `<div class="item"><div class="t">${esc(t)}${nicheMatch(t)?'<span class="badge">niche</span>':''}<div class="m">${fmt(a.views)} views</div></div>${useBtn(t,Math.round(100-i))}</div>`}).join('');
+      return;
+    }catch(e){}
+  }
+  out.innerHTML='<p class="err">Wikipedia data is not available right now.</p>';
+};
+
+$('#btnReddit').onclick=async()=>{
+  const out=$('#redditOut');out.innerHTML='<p class="hint">Loading…</p>';let html='',fails=0;
+  for(const sub of $('#subs').value.split(',').map(s=>s.trim()).filter(Boolean).slice(0,6)){
+    try{const r=await fetch(`https://www.reddit.com/r/${encodeURIComponent(sub)}/top.json?t=week&limit=10`);const j=await r.json();
+      html+=`<h3>r/${esc(sub)}</h3>`+j.data.children.map(c=>{const t=c.data.title.replace(/^TIL( that)?\s*/i,'');return `<div class="item"><div class="t">${esc(t)}<div class="m">▲ ${fmt(c.data.ups)}</div></div>${useBtn(t.slice(0,90),70)}</div>`}).join('');
+    }catch(e){fails++}
+  }
+  out.innerHTML=html||'<p class="err">Reddit blocked the request from this browser. The other sources still work.</p>';
+};
+
+/* ---------- 2. supply ---------- */
+async function analyze(topic,trend=0){
+  topic=topic.trim();const ck='an_'+S.settings.region+'_'+topic.toLowerCase();
+  const c=cacheGet(ck,864e5);if(c)return {...c,trend:Math.max(trend,c.trend||0),cached:true};
+  const s=await yt('search',{part:'snippet',type:'video',maxResults:50,q:topic,regionCode:S.settings.region,relevanceLanguage:S.settings.lang,order:'relevance'},100);
+  const ids=(s.items||[]).map(i=>i.id&&i.id.videoId).filter(Boolean);
+  let vids=[];if(ids.length){const v=await yt('videos',{part:'snippet,statistics',id:ids.join(',')},1);vids=v.items||[]}
+  const chIds=[...new Set(vids.map(v=>v.snippet.channelId))].slice(0,50);const subs={};
+  if(chIds.length){const ch=await yt('channels',{part:'statistics',id:chIds.join(',')},1);(ch.items||[]).forEach(c=>subs[c.id]=c.statistics.hiddenSubscriberCount?null:+c.statistics.subscriberCount)}
+  const order=Object.fromEntries(ids.map((id,i)=>[id,i]));vids.sort((a,b)=>order[a.id]-order[b.id]);
+  let ac=[];try{ac=await suggest(topic)}catch(e){}
+  const now=Date.now();
+  const rows=vids.map(v=>({id:v.id,title:v.snippet.title,channel:v.snippet.channelTitle,views:+(v.statistics.viewCount||0),subs:subs[v.snippet.channelId]??null,ageDays:Math.max(1,(now-Date.parse(v.snippet.publishedAt))/864e5),tags:(v.snippet.tags||[]).slice(0,15)}));
+  const data={topic,total:(s.pageInfo&&s.pageInfo.totalResults)||0,rows,ac,trend,at:now};
+  cacheSet(ck,data);return data;
+}
+function score(d){
+  const top=d.rows.slice(0,20),n=Math.max(top.length,1);
+  const avgViews=top.reduce((a,r)=>a+r.views,0)/n;
+  const r30=d.rows.filter(r=>r.ageDays<=30);
+  const velocity=r30.length?r30.reduce((a,r)=>a+r.views/r.ageDays,0)/r30.length:0;
+  const recent90=d.rows.filter(r=>r.ageDays<=90).length;
+  const medSubs=median(top.map(r=>r.subs).filter(x=>x!=null));
+  const words=keyWords(d.topic);
+  const matchRate=words.length?top.filter(r=>words.every(w=>r.title.toLowerCase().includes(w))).length/n:0;
+  const smallWins=top.filter(r=>r.subs!=null&&r.subs<10000).length;
+  const outliers=d.rows.filter(r=>r.subs&&r.views>=3*r.subs).length;
+  const avgAge=top.reduce((a,r)=>a+r.ageDays,0)/n;
+  const acPresence=Math.min(100,(d.ac||[]).length*10);
+  const vScore=lin(Math.log10(avgViews+1),3,7),velScore=lin(Math.log10(velocity+1),1,5);
+  const demand=d.trend>0?.30*d.trend+.25*acPresence+.30*vScore+.15*velScore:(.25*acPresence+.30*vScore+.15*velScore)/.70;
+  const compRaw=.25*lin(Math.log10(d.total+1),3,6)+.20*(recent90/Math.max(d.rows.length,1)*100)+.25*lin(Math.log10(medSubs+1),3,7)+.15*matchRate*100-.15*(smallWins/n*100);
+  const competition=clamp(compRaw+15);
+  const opportunity=clamp(Math.sqrt(clamp(demand)*(100-competition))+10*Math.min(outliers/5,1)+5*(avgAge>730?1:avgAge>365?.5:0));
+  const verdict=competition<35?'🟢 Wide open':competition<55?'🟡 Room to compete':competition<75?'🟠 Crowded':'🔴 Saturated';
+  return {demand:clamp(demand),competition,opportunity,verdict,avgViews,velocity,recent90,medSubs,matchRate,smallWins,outliers,avgAge,top:top.length};
+}
+async function runCheck(topic,trend=0){
+  topic=(topic||$('#topicIn').value).trim();if(!topic){toast('Type a topic first');return}
+  const prog=$('#supplyProg');prog.textContent='Checking YouTube…';$('#btnCheck').disabled=true;
+  try{const d=await analyze(topic,trend);S.analysis=d;prog.textContent=d.cached?'From cache (no units used).':'';renderSupply(d)}
+  catch(e){prog.innerHTML=`<span class="err">${esc(e.message)}</span>`}
+  $('#btnCheck').disabled=false;
+}
+$('#btnCheck').onclick=()=>runCheck();
+$('#topicIn').addEventListener('keydown',e=>{if(e.key==='Enter')runCheck()});
+function renderSupply(d){
+  const s=score(d);
+  $('#supplyOut').innerHTML=`<div class="card">
+    <h2>${esc(d.topic)}</h2><span class="pill">${s.verdict}</span>
+    <div class="score"><div><b class="${cls(s.opportunity)}">${Math.round(s.opportunity)}</b><span>OPPORTUNITY</span></div><div><b class="${cls(s.demand)}">${Math.round(s.demand)}</b><span>DEMAND</span></div><div><b class="${cls(100-s.competition)}">${Math.round(s.competition)}</b><span>COMPETITION</span></div></div>
+    <div class="stats">
+      <div>Total videos (est.)<b>${d.total>=1e6?'1M+':fmt(d.total)}</b></div>
+      <div>Uploaded last 90 days<b>${s.recent90}/${d.rows.length}</b></div>
+      <div>Avg views, top 20<b>${fmt(s.avgViews)}</b></div>
+      <div>Median subs, top 20<b>${fmt(s.medSubs)}</b></div>
+      <div>Small channels in top 20<b>${s.smallWins}</b></div>
+      <div>Outlier videos<b>${s.outliers}</b></div>
+      <div>Exact keyword in titles<b>${Math.round(s.matchRate*100)}%</b></div>
+      <div>Avg age, top 20<b>${Math.round(s.avgAge/30)} mo</b></div>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="goTitles">Make titles →</button></div>
+  </div>
+  <div class="card"><h3>Top videos for this topic</h3><div class="list">${d.rows.slice(0,15).map(r=>`<div class="item"><div class="t"><a href="https://www.youtube.com/watch?v=${esc(r.id)}" target="_blank" rel="noopener">${esc(r.title)}</a>${r.subs&&r.views>=3*r.subs?'<span class="badge">outlier</span>':''}<div class="m">${esc(r.channel)} · ${fmt(r.views)} views · ${r.subs==null?'hidden':fmt(r.subs)} subs · ${Math.round(r.ageDays)} days ago</div></div></div>`).join('')}</div></div>`;
+  $('#goTitles').onclick=()=>{$('#titleTopicIn').value=d.topic;tab('titles');$('#btnTitles').click()};
+}
+
+/* ---------- 3. titles ---------- */
+async function expandKeywords(topic){
+  const prog=$('#titleProg');const base=topic.toLowerCase().trim();const freq=new Map();
+  const qs=[base,...'abcdefghijklmnopqrstuvwxyz'.split('').map(l=>base+' '+l)];
+  if(!/^(why|how|what)\b/.test(base))qs.push('why '+base,'how '+base,'what if '+base);
+  let i=0;
+  for(const q of qs){i++;prog.textContent=`Collecting real YouTube searches… ${i}/${qs.length}`;try{(await suggest(q)).forEach((s,k)=>{const e=freq.get(s)||0;freq.set(s,e+(10-k))})}catch(e){}await sleep(120)}
+  prog.textContent='';
+  const words=keyWords(base);
+  const all=[...freq.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]).filter(s=>s!==base);
+  const related=all.filter(s=>words.length?words.some(w=>s.includes(w)):true);
+  return {primary:base,secondary:related.slice(0,5),longtails:related.slice(0,25)};
+}
+function templateTitles(topic){
+  const T=titleCase(topic.replace(/\?+$/,''));const q=/^(what|why|how|when|where|who|is|are|can|could|would|will|do|does)\b/i.test(topic);
+  const Q=q?[
+    `${T}? Here's What Science Says`,`${T}? The Answer Is Terrifying`,`${T}? (It's Worse Than You Think)`,`${T}? We Did the Math`,
+    `${T}? Scientists Finally Answer`,`${T}? The First 24 Hours`,`${T}? Hour by Hour`,`${T}? The Truth Is Shocking`,
+    `${T}? Nobody Expected This Answer`,`${T}? Here's What Would Happen`,`${T}? The Real Answer`,`${T}? Experts Explain`,
+    `${T}? Every Second Explained`,`${T}? It Would Change Everything`,`${T}? You Won't Believe the Answer`,`${T}? This Is What Happens Next`,
+    `${T}? A Scientist Explains`,`${T}? The Answer Will Surprise You`,`${T}? Let's Find Out`,`${T}? The Scary Truth`
+  ]:[
+    `${T}: The Truth Nobody Tells You`,`${T} Is Not What You Think`,`The Dark Secret of ${T}`,`Why ${T} Should Terrify You`,
+    `${T} Explained in 10 Minutes`,`${T}: 7 Facts That Sound Fake (But Aren't)`,`Scientists Still Can't Explain ${T}`,`${T} Is Hiding Something Huge`,
+    `How ${T} Changed Everything`,`Nobody Talks About This Side of ${T}`,`${T}: What Really Happened`,`The Terrifying Scale of ${T}`,
+    `What If ${T} Disappeared Tomorrow?`,`${T}: The Mystery Nobody Solved`,`Inside ${T}: What You Were Never Told`,`${T} Will Change How You See the World`,
+    `Why Everyone Is Suddenly Talking About ${T}`,`The Shocking Truth About ${T}`,`${T} Is Bigger Than You Imagined`,`The Real Story of ${T}`
+  ];
+  return Q;
+}
+const POWER=['truth','secret','shocking','terrifying','never','nobody','finally','real','hidden','worst','biggest','impossible','insane','deadly','mystery','scary','strange','actually','why','what if','dark','huge','fake','surprise'];
+function jacc(a,b){const A=new Set(keyWords(a)),B=new Set(keyWords(b));if(!A.size||!B.size)return 0;let i=0;A.forEach(x=>{if(B.has(x))i++});return i/(A.size+B.size-i)}
+function scoreTitle(t,primary,existing){
+  let s=0;const L=t.length;s+=L<=60?30:L<=70?25:L<=100?10:0;
+  const w=keyWords(primary)[0];const pos=w?t.toLowerCase().indexOf(w):-1;s+=pos<0?0:pos<=L/2?25:15;
+  const tl=t.toLowerCase();if(POWER.some(p=>tl.includes(p)))s+=15;
+  if(/\?|\d/.test(t))s+=10;
+  const dup=Math.max(0,...existing.map(e=>jacc(t,e)));s+=dup>0.6?-20:20;
+  return {score:clamp(s),dup:dup>0.6};
+}
+async function makeTitles(ai){
+  const topic=($('#titleTopicIn').value||(S.analysis&&S.analysis.topic)||'').trim();if(!topic){toast('Type or check a topic first');return}
+  $('#btnTitles').disabled=$('#btnTitlesAI').disabled=true;
+  try{
+    if(!S.kw||S.kw.primary!==topic.toLowerCase())S.kw=await expandKeywords(topic);
+    $('#kwOut').innerHTML=`<h3>Main keyword</h3><div class="chips"><span class="chip">${esc(S.kw.primary)}</span></div><h3>Secondary keywords (real YouTube searches)</h3><div class="chips">${S.kw.secondary.map(k=>`<span class="chip">${esc(k)}</span>`).join('')||'<span class="hint">none found</span>'}</div>`;
+    const existing=(S.analysis&&S.analysis.topic.toLowerCase()===topic.toLowerCase())?S.analysis.rows.map(r=>r.title):[];
+    let titles;
+    if(ai){
+      $('#titleProg').textContent='Asking Gemini…';
+      const txt=await gemini(`You write YouTube titles for a curiosity/education channel.\nTopic: "${topic}"\nMain keyword: "${S.kw.primary}"\nRelated real YouTube searches: ${S.kw.secondary.join('; ')}\nExisting top-ranking titles to AVOID copying:\n${existing.slice(0,15).join('\n')}\n\nWrite 20 high-curiosity, high-CTR titles. Rules: max 70 characters each, main keyword (or close variant) in the first half, plain simple words, create a curiosity gap or stakes, honest (no clickbait the video can't deliver), no emojis, no hashtags, no quotes. Return ONLY a JSON array of 20 strings.`);
+      const m=txt.match(/\[[\s\S]*\]/);titles=m?JSON.parse(m[0]):txt.split('\n').map(x=>x.replace(/^\s*[\d\-.*)]+\s*/,'').trim()).filter(Boolean);
+      $('#titleProg').textContent='';
+    }else titles=templateTitles(topic);
+    S.titles=titles.slice(0,20).map(t=>({t:String(t).trim(),...scoreTitle(String(t).trim(),S.kw.primary,existing)})).sort((a,b)=>b.score-a.score);
+    renderTitles();
+  }catch(e){$('#titleProg').innerHTML=`<span class="err">${esc(e.message)}</span>`}
+  $('#btnTitles').disabled=$('#btnTitlesAI').disabled=false;
+}
+function renderTitles(){
+  $('#titlesOut').innerHTML=S.titles.map((x,i)=>`<div class="item"><div class="t">${esc(x.t)}<div class="m">${x.t.length} chars · score <b class="${cls(x.score)}">${x.score}</b>${x.dup?' · too similar to an existing video':''}</div></div><button class="btn sm" data-appr="${i}">Approve</button></div>`).join('');
+  document.querySelectorAll('[data-appr]').forEach(b=>b.onclick=()=>{S.title=S.titles[+b.dataset.appr].t;$('#descFor').innerHTML=`Approved title: <b>${esc(S.title)}</b>`;toast('Title approved ✓');tab('desc');if(!$('#descOut').value)$('#btnDesc').click()});
+}
+$('#btnTitles').onclick=()=>makeTitles(false);
+$('#btnTitlesAI').onclick=()=>makeTitles(true);
+$('#titleTopicIn').addEventListener('input',()=>{$('#titleTopic').textContent='Topic for titles:'});
+
+/* ---------- 4. description ---------- */
+function hashtags(){
+  const kw=S.kw?S.kw.primary:(S.title||'');const cam=s=>'#'+s.split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join('').replace(/[^\p{L}\p{N}#]/gu,'');
+  const core=keyWords(kw).slice(0,3).join(' ');const out=[];
+  if(core)out.push(cam(core));
+  if(/what if/i.test(kw))out.push('#WhatIf');
+  const nicheWord=keyWords(S.settings.niches).find(w=>kw.toLowerCase().includes(w));if(nicheWord)out.push(cam(nicheWord));
+  out.push('#Facts');
+  if(S.settings.channel)out.push(cam(S.settings.channel));
+  return [...new Set(out)].slice(0,5);
+}
+function needTitle(){if(!S.title){toast('Approve a title in step 3 first');tab('titles');return false}return true}
+$('#btnDesc').onclick=()=>{
+  if(!needTitle())return;
+  const kw=S.kw?S.kw.primary:S.title.toLowerCase();const sec=S.kw?S.kw.secondary:[];
+  const hook=`${titleCase(kw)}: what would really happen? In this video we break down ${kw} step by step, using real facts and numbers.`;
+  const p2=sec.length?`You'll find out ${sec.slice(0,3).join(', ')}${sec[3]?' and '+sec[3]:''}, explained in plain, simple words.`:`Everything is explained in plain, simple words.`;
+  const p3=`By the end, you'll understand ${kw} better than most people, and you'll never look at it the same way again.`;
+  const desc=[hook,'',p2,'',p3,'','⏱ Chapters','00:00 Intro','00:00 ','00:00 ','00:00 Conclusion','',`👉 Subscribe${S.settings.channel?' to '+S.settings.channel:''} for more mind-blowing what-ifs and true stories.`,`💬 What would YOU do? Tell us in the comments.`,S.settings.credits?'\nCredits:\n'+S.settings.credits:'','',hashtags().join(' ')].filter(x=>x!==null).join('\n');
+  $('#descOut').value=desc.replace(/\n{3,}/g,'\n\n');updateDesc();
+};
+$('#btnDescAI').onclick=async()=>{
+  if(!needTitle())return;$('#descProg').textContent='Asking Gemini…';
+  try{
+    const txt=await gemini(`Write a YouTube video description.\nTitle: "${S.title}"\nMain keyword: "${S.kw?S.kw.primary:S.title}"\nSecondary keywords: ${S.kw?S.kw.secondary.join('; '):''}\nLanguage: ${S.settings.lang==='hi'?'Hinglish (Hindi in Latin letters mixed with English)':'English'}\nScript or notes:\n${$('#scriptIn').value.slice(0,6000)||'(none)'}\n\nRules: first sentence (max 150 characters) is a hook containing the main keyword. Then 2-3 short paragraphs using the secondary keywords naturally (no stuffing). Then a "⏱ Chapters" list starting at 00:00 (use real chapters from the script if given, otherwise 00:00 placeholders). Then a subscribe line and one comment question. Total 1,000-2,000 characters. Plain text, no markdown, no hashtags (I add them).`);
+    let d=txt.trim();if(S.settings.credits)d+='\n\nCredits:\n'+S.settings.credits;d+='\n\n'+hashtags().join(' ');
+    $('#descOut').value=d;updateDesc();$('#descProg').textContent='';
+  }catch(e){$('#descProg').innerHTML=`<span class="err">${esc(e.message)}</span>`}
+};
+function updateDesc(){
+  const v=$('#descOut').value,kw=S.kw?S.kw.primary:'';const first=v.slice(0,150).toLowerCase();const w=keyWords(kw);
+  const ok=w.length&&w.every(x=>first.includes(x));
+  $('#descCount').innerHTML=`${v.length.toLocaleString()}/5,000 characters ${v.length>5000?'<span class="r">too long</span>':''} · keyword in first 150: ${kw?(ok?'<span class="g">yes ✓</span>':'<span class="y">no, add it</span>'):'–'}`;
+}
+$('#descOut').addEventListener('input',updateDesc);
+
+/* ---------- 5. tags ---------- */
+const tagLen=t=>t.reduce((a,x)=>a+x.length+(x.includes(' ')?2:0),0)+Math.max(0,t.length-1);
+function buildTags(){
+  const kw=S.kw?S.kw.primary:(S.title||'').toLowerCase();if(!kw)return [];
+  const cand=[kw];
+  (S.kw?S.kw.longtails:[]).slice(0,8).forEach(x=>cand.push(x));
+  if(S.analysis){const f=new Map();S.analysis.rows.slice(0,20).forEach(r=>[...new Set(r.tags.map(t=>t.toLowerCase().trim()))].forEach(t=>f.set(t,(f.get(t)||0)+1)));[...f.entries()].filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]).slice(0,8).forEach(x=>cand.push(x[0]))}
+  keyWords(S.settings.niches).filter(w=>kw.includes(w)).forEach(w=>cand.push(w));
+  keyWords(kw).slice(0,2).forEach(w=>cand.push(w));
+  if(S.settings.channel)cand.push(S.settings.channel.toLowerCase());
+  const out=[];for(const t of [...new Set(cand.map(x=>x.replace(/[<>",]/g,'').trim()).filter(Boolean))]){if(t.length>100)continue;if(tagLen([...out,t])<=480)out.push(t)}
+  return out;
+}
+function renderTags(){
+  $('#tagChips').innerHTML=S.tags.map((t,i)=>`<span class="chip">${esc(t)}<button data-rm="${i}">×</button></span>`).join('');
+  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{S.tags.splice(+b.dataset.rm,1);renderTags()});
+  const L=tagLen(S.tags);$('#tagCount').innerHTML=`${S.tags.length} tags · <b class="${L>500?'r':L>450?'y':'g'}">${L}/500</b> characters (YouTube count)`;
+}
+function renderHash(){const h=$('#hashOut').value.trim().split(/\s+/).filter(Boolean);const bad=h.filter(x=>!/^#[\p{L}\p{N}_]+$/u.test(x));$('#hashCount').innerHTML=`${h.length} hashtags ${h.length>15?'<span class="r">over 15: YouTube will ignore ALL of them</span>':h.length>5?'<span class="y">3–5 works best</span>':'<span class="g">✓</span>'} ${bad.length?'<span class="r">· fix: '+esc(bad.join(' '))+'</span>':''}`}
+$('#btnTags').onclick=()=>{if(!S.kw&&!S.title){toast('Make titles first (step 3)');tab('titles');return}S.tags=buildTags();renderTags();$('#hashOut').value=hashtags().join(' ');renderHash()};
+$('#tagAdd').addEventListener('keydown',e=>{if(e.key!=='Enter')return;const v=e.target.value.replace(/[<>",]/g,'').trim();if(!v)return;if(tagLen([...S.tags,v])>500){toast('That would go over 500 characters');return}S.tags.push(v);e.target.value='';renderTags()});
+$('#hashOut').addEventListener('input',renderHash);
+$('#btnCopyTags').onclick=()=>copy(S.tags.join(', '));
+$('#btnCopyAll').onclick=()=>copy(`TITLE:\n${S.title||''}\n\nDESCRIPTION:\n${$('#descOut').value}\n\nTAGS:\n${S.tags.join(', ')}\n\nHASHTAGS:\n${$('#hashOut').value}`);
+
+/* ---------- history ---------- */
+function hist(){return store.get('history',[])}
+$('#btnSave').onclick=()=>{if(!S.title){toast('Approve a title first');return}const sc=S.analysis?score(S.analysis):null;const h=hist();h.unshift({date:new Date().toISOString(),topic:S.analysis?S.analysis.topic:(S.kw&&S.kw.primary),opportunity:sc?Math.round(sc.opportunity):'',competition:sc?Math.round(sc.competition):'',title:S.title,description:$('#descOut').value,tags:S.tags.join(', '),hashtags:$('#hashOut').value});store.set('history',h.slice(0,200));renderHist();toast('Saved to history ✓')};
+function renderHist(){const h=hist();$('#histOut').innerHTML=h.length?h.slice(0,30).map(x=>`<div class="item"><div class="t">${esc(x.title)}<div class="m">${esc(x.topic||'')} · opp ${x.opportunity} · ${x.date.slice(0,10)}</div></div></div>`).join(''):'<p class="hint">Nothing saved yet.</p>'}
+$('#btnExportJson').onclick=()=>download('tubescout-history.json',JSON.stringify(hist(),null,2),'application/json');
+$('#btnExportCsv').onclick=()=>{const h=hist();const cols=['date','topic','opportunity','competition','title','tags','hashtags','description'];const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';download('tubescout-history.csv',[cols.join(','),...h.map(r=>cols.map(c=>q(r[c])).join(','))].join('\n'),'text/csv')};
+
+/* ---------- settings ---------- */
+function loadSettings(){const s=S.settings;$('#setYt').value=s.ytKey;$('#setGem').value=s.geminiKey;$('#setModel').value=s.model;$('#setRegion').value=s.region;$('#setLang').value=s.lang;$('#setNiches').value=s.niches;$('#setChannel').value=s.channel;$('#setCredits').value=s.credits;$('#gtLink').href='https://trends.google.com/trending?geo='+s.region}
+$('#btnSaveSet').onclick=()=>{S.settings={ytKey:$('#setYt').value.trim(),geminiKey:$('#setGem').value.trim(),model:$('#setModel').value.trim()||DEF.model,region:$('#setRegion').value,lang:$('#setLang').value,niches:$('#setNiches').value,channel:$('#setChannel').value.trim(),credits:$('#setCredits').value};store.set('settings',S.settings);loadSettings();toast('Settings saved ✓')};
+
+loadSettings();renderQuota();renderHist();
+if(!S.settings.ytKey)setTimeout(()=>toast('Start in ⚙ Settings: add your free YouTube API key'),600);
+</script>
+</body>
+</html>
