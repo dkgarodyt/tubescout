@@ -138,7 +138,7 @@ ol{padding-left:20px}ol li{margin-bottom:4px}
     <h2>SEO titles</h2>
     <p class="hint" id="titleTopic">Check a topic in Supply first, or type one here.</p>
     <div class="row"><input id="titleTopicIn" placeholder="topic"></div>
-    <div class="row" style="margin-top:8px"><button class="btn" id="btnTitles">20 titles (free templates)</button><button class="btn sec" id="btnTitlesAI">20 titles with AI (Gemini)</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="btnTitles">20 titles (free templates)</button><button class="btn sec" id="btnTitlesAI">20 titles with AI</button></div>
     <div class="prog" id="titleProg"></div>
     <div id="kwOut"></div>
   </div>
@@ -152,7 +152,7 @@ ol{padding-left:20px}ol li{margin-bottom:4px}
     <p class="hint" id="descFor">Approve a title first (step 3).</p>
     <label>Optional: paste your script or notes (AI uses it for a better description and chapters)</label>
     <textarea id="scriptIn" style="min-height:80px"></textarea>
-    <div class="row" style="margin-top:8px"><button class="btn" id="btnDesc">Write (free template)</button><button class="btn sec" id="btnDescAI">Write with AI (Gemini)</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="btnDesc">Write (free template)</button><button class="btn sec" id="btnDescAI">Write with AI</button></div>
     <div class="prog" id="descProg"></div>
     <label>Description (edit freely)</label>
     <textarea id="descOut" style="min-height:300px"></textarea>
@@ -191,7 +191,15 @@ ol{padding-left:20px}ol li{margin-bottom:4px}
     <h2>Settings</h2>
     <label>YouTube Data API key (free, required for Supply)</label>
     <input id="setYt" type="password" placeholder="AIza...">
-    <label>Gemini API key (optional, for AI titles and descriptions)</label>
+    <label>Claude API key (for AI titles and descriptions)</label>
+    <input id="setClaude" type="password" placeholder="sk-ant-...">
+    <label>Claude model</label>
+    <select id="setClaudeModel">
+      <option value="claude-haiku-5-5">Claude Haiku 5.5 (fastest, cheapest)</option>
+      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (balanced)</option>
+      <option value="claude-opus-5-5">Claude Opus 5.5 (highest quality, costs most)</option>
+    </select>
+    <label>Gemini API key (optional backup, used only if no Claude key)</label>
     <input id="setGem" type="password" placeholder="optional">
     <label>Gemini model</label>
     <input id="setModel">
@@ -219,7 +227,8 @@ ol{padding-left:20px}ol li{margin-bottom:4px}
       <li>Edit the key and set <b>API restrictions = YouTube Data API v3</b>. Under <b>Website restrictions</b>, add your site address (e.g. <code>yourname.github.io/*</code>).</li>
       <li>Paste the key above. You get 10,000 units a day, which is about 95 topic checks. It resets at 1:30 PM IST.</li>
     </ol>
-    <p class="hint">Gemini key (optional): <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
+    <p class="hint"><b>Claude API key:</b> open <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a> → API keys → Create key, then paste it above. AI writing is billed to that key's credits.</p>
+    <p class="hint">Gemini key (optional backup): <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
   </div>
   <div class="card">
     <h2>History</h2>
@@ -259,7 +268,7 @@ function keyWords(s){return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').spl
 const cls=v=>v>=60?'g':v>=40?'y':'r';
 
 /* ---------- state ---------- */
-const DEF={ytKey:'',geminiKey:'',model:'gemini-flash-latest',region:'IN',lang:'en',niches:'space, ocean, animals, history, science, what if',channel:'',credits:''};
+const DEF={ytKey:'',claudeKey:'',claudeModel:'claude-sonnet-5-5',geminiKey:'',model:'gemini-flash-latest',region:'IN',lang:'en',niches:'space, ocean, animals, history, science, what if',channel:'',credits:''};
 const S={settings:{...DEF,...store.get('settings',{})},ideas:[],ranked:[],analysis:null,kw:null,title:null,tags:[]};
 
 /* ---------- quota ---------- */
@@ -292,6 +301,18 @@ async function gemini(prompt){
   const j=await r.json();if(j.error)throw new Error('Gemini: '+j.error.message);
   return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
 }
+
+async function claude(prompt){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.settings.claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:S.settings.claudeModel,max_tokens:2500,messages:[{role:'user',content:prompt}]})});
+  const j=await r.json();if(j.type==='error'||j.error)throw new Error('Claude: '+((j.error&&j.error.message)||'request failed'));
+  return (j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+}
+async function askAI(prompt){
+  if(S.settings.claudeKey)return claude(prompt);
+  if(S.settings.geminiKey)return gemini(prompt);
+  throw new Error('Add your Claude API key in ⚙ Settings to use AI writing (or use the free template button).');
+}
+const aiName=()=>S.settings.claudeKey?'Claude':'Gemini';
 
 /* ---------- tabs ---------- */
 function tab(name){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===name));window.scrollTo(0,0)}
@@ -485,8 +506,8 @@ async function makeTitles(ai){
     const existing=(S.analysis&&S.analysis.topic.toLowerCase()===topic.toLowerCase())?S.analysis.rows.map(r=>r.title):[];
     let titles;
     if(ai){
-      $('#titleProg').textContent='Asking Gemini…';
-      const txt=await gemini(`You write YouTube titles for a curiosity/education channel.\nTopic: "${topic}"\nMain keyword: "${S.kw.primary}"\nRelated real YouTube searches: ${S.kw.secondary.join('; ')}\nExisting top-ranking titles to AVOID copying:\n${existing.slice(0,15).join('\n')}\n\nWrite 20 high-curiosity, high-CTR titles. Rules: max 70 characters each, main keyword (or close variant) in the first half, plain simple words, create a curiosity gap or stakes, honest (no clickbait the video can't deliver), no emojis, no hashtags, no quotes. Return ONLY a JSON array of 20 strings.`);
+      $('#titleProg').textContent='Asking '+aiName()+'…';
+      const txt=await askAI(`You write YouTube titles for a curiosity/education channel.\nTopic: "${topic}"\nMain keyword: "${S.kw.primary}"\nRelated real YouTube searches: ${S.kw.secondary.join('; ')}\nExisting top-ranking titles to AVOID copying:\n${existing.slice(0,15).join('\n')}\n\nWrite 20 high-curiosity, high-CTR titles. Rules: max 70 characters each, main keyword (or close variant) in the first half, plain simple words, create a curiosity gap or stakes, honest (no clickbait the video can't deliver), no emojis, no hashtags, no quotes. Return ONLY a JSON array of 20 strings.`);
       const m=txt.match(/\[[\s\S]*\]/);titles=m?JSON.parse(m[0]):txt.split('\n').map(x=>x.replace(/^\s*[\d\-.*)]+\s*/,'').trim()).filter(Boolean);
       $('#titleProg').textContent='';
     }else titles=templateTitles(topic);
@@ -525,9 +546,9 @@ $('#btnDesc').onclick=()=>{
   $('#descOut').value=desc.replace(/\n{3,}/g,'\n\n');updateDesc();
 };
 $('#btnDescAI').onclick=async()=>{
-  if(!needTitle())return;$('#descProg').textContent='Asking Gemini…';
+  if(!needTitle())return;$('#descProg').textContent='Asking '+aiName()+'…';
   try{
-    const txt=await gemini(`Write a YouTube video description.\nTitle: "${S.title}"\nMain keyword: "${S.kw?S.kw.primary:S.title}"\nSecondary keywords: ${S.kw?S.kw.secondary.join('; '):''}\nLanguage: ${S.settings.lang==='hi'?'Hinglish (Hindi in Latin letters mixed with English)':'English'}\nScript or notes:\n${$('#scriptIn').value.slice(0,6000)||'(none)'}\n\nRules: first sentence (max 150 characters) is a hook containing the main keyword. Then 2-3 short paragraphs using the secondary keywords naturally (no stuffing). Then a "⏱ Chapters" list starting at 00:00 (use real chapters from the script if given, otherwise 00:00 placeholders). Then a subscribe line and one comment question. Total 1,000-2,000 characters. Plain text, no markdown, no hashtags (I add them).`);
+    const txt=await askAI(`Write a YouTube video description.\nTitle: "${S.title}"\nMain keyword: "${S.kw?S.kw.primary:S.title}"\nSecondary keywords: ${S.kw?S.kw.secondary.join('; '):''}\nLanguage: ${S.settings.lang==='hi'?'Hinglish (Hindi in Latin letters mixed with English)':'English'}\nScript or notes:\n${$('#scriptIn').value.slice(0,6000)||'(none)'}\n\nRules: first sentence (max 150 characters) is a hook containing the main keyword. Then 2-3 short paragraphs using the secondary keywords naturally (no stuffing). Then a "⏱ Chapters" list starting at 00:00 (use real chapters from the script if given, otherwise 00:00 placeholders). Then a subscribe line and one comment question. Total 1,000-2,000 characters. Plain text, no markdown, no hashtags (I add them).`);
     let d=txt.trim();if(S.settings.credits)d+='\n\nCredits:\n'+S.settings.credits;d+='\n\n'+hashtags().join(' ');
     $('#descOut').value=d;updateDesc();$('#descProg').textContent='';
   }catch(e){$('#descProg').innerHTML=`<span class="err">${esc(e.message)}</span>`}
@@ -572,8 +593,8 @@ $('#btnExportJson').onclick=()=>download('tubescout-history.json',JSON.stringify
 $('#btnExportCsv').onclick=()=>{const h=hist();const cols=['date','topic','opportunity','competition','title','tags','hashtags','description'];const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';download('tubescout-history.csv',[cols.join(','),...h.map(r=>cols.map(c=>q(r[c])).join(','))].join('\n'),'text/csv')};
 
 /* ---------- settings ---------- */
-function loadSettings(){const s=S.settings;$('#setYt').value=s.ytKey;$('#setGem').value=s.geminiKey;$('#setModel').value=s.model;$('#setRegion').value=s.region;$('#setLang').value=s.lang;$('#setNiches').value=s.niches;$('#setChannel').value=s.channel;$('#setCredits').value=s.credits;$('#gtLink').href='https://trends.google.com/trending?geo='+s.region}
-$('#btnSaveSet').onclick=()=>{S.settings={ytKey:$('#setYt').value.trim(),geminiKey:$('#setGem').value.trim(),model:$('#setModel').value.trim()||DEF.model,region:$('#setRegion').value,lang:$('#setLang').value,niches:$('#setNiches').value,channel:$('#setChannel').value.trim(),credits:$('#setCredits').value};store.set('settings',S.settings);loadSettings();toast('Settings saved ✓')};
+function loadSettings(){const s=S.settings;$('#setYt').value=s.ytKey;$('#setClaude').value=s.claudeKey;$('#setClaudeModel').value=s.claudeModel;$('#setGem').value=s.geminiKey;$('#setModel').value=s.model;$('#setRegion').value=s.region;$('#setLang').value=s.lang;$('#setNiches').value=s.niches;$('#setChannel').value=s.channel;$('#setCredits').value=s.credits;$('#gtLink').href='https://trends.google.com/trending?geo='+s.region}
+$('#btnSaveSet').onclick=()=>{S.settings={ytKey:$('#setYt').value.trim(),claudeKey:$('#setClaude').value.trim(),claudeModel:$('#setClaudeModel').value,geminiKey:$('#setGem').value.trim(),model:$('#setModel').value.trim()||DEF.model,region:$('#setRegion').value,lang:$('#setLang').value,niches:$('#setNiches').value,channel:$('#setChannel').value.trim(),credits:$('#setCredits').value};store.set('settings',S.settings);loadSettings();toast('Settings saved ✓')};
 
 loadSettings();renderQuota();renderHist();
 if(!S.settings.ytKey)setTimeout(()=>toast('Start in ⚙ Settings: add your free YouTube API key'),600);
